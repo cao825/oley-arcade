@@ -3,16 +3,15 @@
 import type React from "react"
 
 import { useState, useRef, useEffect } from "react"
-import Image from "next/image"
 import Link from "next/link"
-import { ExternalLink, Sparkles } from "lucide-react"
+import { ExternalLink, Sparkles, ImageIcon } from "lucide-react"
 
 interface Game {
   id: string
   title: string
   description: string
   url: string
-  imageUrl: string
+  imageUrl?: string
 }
 
 interface GameCardProps {
@@ -24,6 +23,7 @@ export function GameCard({ game }: GameCardProps) {
   const cardRef = useRef<HTMLDivElement>(null)
   const [rotation, setRotation] = useState({ x: 0, y: 0 })
   const [isLoaded, setIsLoaded] = useState(false)
+  const [imageError, setImageError] = useState(false)
 
   // 3D tilt effect
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -68,6 +68,20 @@ export function GameCard({ game }: GameCardProps) {
     return () => observer.disconnect()
   }, [])
 
+  // Generate game-specific background colors based on the game id
+  const getGameColors = (gameId: string) => {
+    const colorMap: Record<string, { from: string; to: string }> = {
+      wordisles: { from: "from-purple-500", to: "to-blue-500" },
+      emojigrid: { from: "from-yellow-500", to: "to-orange-500" },
+      catmazes: { from: "from-green-500", to: "to-teal-500" },
+      breaktheice: { from: "from-blue-500", to: "to-cyan-500" },
+    }
+
+    return colorMap[gameId] || { from: "from-purple-500", to: "to-pink-500" }
+  }
+
+  const { from, to } = getGameColors(game.id)
+
   return (
     <div
       ref={cardRef}
@@ -86,33 +100,27 @@ export function GameCard({ game }: GameCardProps) {
       }}
     >
       <div className="relative aspect-video overflow-hidden">
+        {/* Fallback colored background with game icon */}
+        <div className={`absolute inset-0 bg-gradient-to-br ${from} ${to} flex items-center justify-center`}>
+          <div className="text-white text-opacity-30">
+            <ImageIcon className="w-16 h-16" />
+          </div>
+        </div>
+
+        {/* Loading state */}
         {!isLoaded && isInView && (
-          <div className="absolute inset-0 bg-gray-800 animate-pulse flex items-center justify-center">
-            <Sparkles className="h-8 w-8 text-gray-600 animate-spin" />
+          <div className="absolute inset-0 bg-gray-800/50 backdrop-blur-sm flex items-center justify-center z-10">
+            <Sparkles className="h-8 w-8 text-white animate-pulse" />
           </div>
         )}
-        {isInView && (
-          <Image
-            src={game.imageUrl || `/screenshots/${game.id}.jpg`}
-            alt={`${game.title} screenshot`}
-            className={`object-cover w-full h-full transition-all duration-700 ease-out ${
-              isLoaded ? "opacity-100" : "opacity-0"
-            }`}
-            style={{
-              transform: isHovered ? "scale(1.05)" : "scale(1)",
-            }}
-            width={1200}
-            height={675}
-            onLoad={() => setIsLoaded(true)}
-            loading="lazy"
-          />
-        )}
+
+        {/* Game title overlay */}
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-4 z-20">
+          <h3 className="text-2xl font-bold font-display text-white">{game.title}</h3>
+        </div>
       </div>
 
       <div className="p-6 flex-grow flex flex-col">
-        <h3 className="text-2xl font-bold font-display mb-2 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
-          {game.title}
-        </h3>
         <p className="text-gray-300 mb-6 flex-grow">{game.description}</p>
         <Link
           href={game.url}

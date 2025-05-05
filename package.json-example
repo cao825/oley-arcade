@@ -1,0 +1,5 @@
+{
+  "scripts": {
+    "postinstall": "mkdir -p public/monaco-editor-workers && cp -r node_modules/monaco-editor/min/vs/base/worker/workerMain.js public/monaco-editor-workers/editor.worker.js && cp -r node_modules/monaco-editor/min/vs/language/json/jsonWorker.js public/monaco-editor-workers/json.worker.js && cp -r node_modules/monaco-editor/min/vs/language/css/cssWorker.js public/monaco-editor-workers/css.worker.js && cp -r node_modules/monaco-editor/min/vs/language/html/htmlWorker.js public/monaco-editor-workers/html.worker.js && cp -r node_modules/monaco-editor/min/vs/language/typescript/tsWorker.js public/monaco-editor-workers/ts.worker.js"
+  }
+}
