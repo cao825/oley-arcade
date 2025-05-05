@@ -15,13 +15,13 @@ export function HeroSection() {
   }
 
   return (
-    <div className="relative overflow-hidden bg-background min-h-[70vh] flex items-center scanline">
+    <div className="relative overflow-hidden bg-background min-h-[70vh] flex items-center">
       {/* Animated background grid */}
       <div className="absolute inset-0 z-0 arcade-grid opacity-30"></div>
 
       {/* Floating particles */}
       <div className="absolute inset-0 z-0">
-        {[...Array(20)].map((_, i) => (
+        {[...Array(30)].map((_, i) => (
           <div
             key={i}
             className="absolute rounded-full bg-purple-500/20 animate-float"
@@ -37,6 +37,9 @@ export function HeroSection() {
         ))}
       </div>
 
+      {/* Pixel animation background */}
+      <div className="absolute inset-0 z-0 pixel-bg"></div>
+
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-20">
         <div
           className={`text-center transition-all duration-1000 transform ${
@@ -50,6 +53,9 @@ export function HeroSection() {
           </h1>
           <p className="max-w-lg mx-auto text-xl text-gray-300 sm:max-w-3xl font-medium mt-4">
             Family-built AI-powered games. Play. Learn. Laugh.
+          </p>
+          <p className="max-w-lg mx-auto text-md text-gray-400 sm:max-w-3xl mt-2">
+            Built by the Oley family using AI and imagination.
           </p>
 
           {/* Bouncing down arrow */}

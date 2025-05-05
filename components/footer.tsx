@@ -5,8 +5,8 @@ export function Footer() {
 
   return (
     <footer id="about" className="bg-background border-t border-gray-800">
-      <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="max-w-7xl mx-auto py-16 px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
           <div>
             <div className="flex items-center">
               <Gamepad2 className="h-6 w-6 mr-2 text-pink-500" />
@@ -47,7 +47,7 @@ export function Footer() {
             </div>
           </div>
         </div>
-        <div className="mt-8 pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center">
+        <div className="mt-10 pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center">
           <p className="text-gray-400 text-sm">&copy; {currentYear} OleyArcade. All rights reserved.</p>
           <div className="mt-4 md:mt-0 flex space-x-6">
             <a href="#" className="text-gray-400 hover:text-white transition-colors">
