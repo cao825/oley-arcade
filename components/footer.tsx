@@ -28,16 +28,8 @@ export function Footer() {
             <div className="mt-4 md:justify-end"></div>
           </div>
         </div>
-        <div className="mt-10 pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center">
+        <div className="mt-10 pt-8 border-t border-gray-800 flex justify-center">
           <p className="text-gray-400 text-sm">&copy; {currentYear} OleyArcade. All rights reserved.</p>
-          <div className="mt-4 md:mt-0 flex space-x-6">
-            <a href="#" className="text-gray-400 hover:text-white transition-colors">
-              Privacy Policy
-            </a>
-            <a href="#" className="text-gray-400 hover:text-white transition-colors">
-              Terms of Service
-            </a>
-          </div>
         </div>
       </div>
     </footer>
