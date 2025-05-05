@@ -11,18 +11,21 @@ export default function HomePage() {
       description:
         "A strategic word adventure where every choice shapes your journey across floating isles of language.",
       url: "https://wordisles.com",
+      imageUrl: "/images/wordisles-screenshot.jpg",
     },
     {
       id: "emojigrid",
       title: "Emoji Grid",
       description: "A puzzle-strategy challenge using emoji-based logic and color matching to outsmart the grid.",
       url: "https://emojigrid.vercel.app",
+      imageUrl: "/images/emojigrid-screenshot.jpg",
     },
     {
       id: "catmazes",
       title: "CatMazes",
       description: "Guide curious cats through tricky mazes. Adorable visuals meet clever spatial puzzles.",
       url: "https://catmazes.vercel.app",
+      imageUrl: "/images/catmazes-screenshot.jpg",
     },
     {
       id: "breaktheice",
@@ -30,19 +33,20 @@ export default function HomePage() {
       description:
         "A cool logic game where you melt your way to mastery—layered challenges and hidden achievements await.",
       url: "https://icegame.vercel.app",
+      imageUrl: "/images/breaktheice-screenshot.jpg",
     },
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-950 text-white">
+    <div className="min-h-screen bg-background text-white">
       <Navbar />
-      <main>
+      <main className="pt-16">
         <HeroSection />
-        <section id="games" className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-2 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
+        <section id="games" className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+          <h2 className="text-4xl font-bold text-center mb-3 font-display text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
             Our Games
           </h2>
-          <p className="text-gray-400 text-center mb-12 max-w-2xl mx-auto">
+          <p className="text-gray-400 text-center mb-16 max-w-2xl mx-auto text-lg">
             Dive into our collection of family-crafted games, each designed to challenge your mind and delight your
             senses.
           </p>
