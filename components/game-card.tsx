@@ -8,8 +8,8 @@ import { ExternalLink, Gamepad } from "lucide-react"
 interface Game {
   id: string
   title: string
-  description: string
   shortDescription: string
+  description: string
   url: string
 }
 
@@ -18,21 +18,26 @@ interface GameCardProps {
 }
 
 export function GameCard({ game }: GameCardProps) {
-  const [isHovered, setIsHovered] = useState(false)
-  const [imageLoaded, setImageLoaded] = useState(false)
-  const [imageError, setImageError] = useState(false)
+  const [isImageLoaded, setIsImageLoaded] = useState(false)
+  const [hasImageError, setHasImageError] = useState(false)
   const cardRef = useRef<HTMLDivElement>(null)
+  const [isHovered, setIsHovered] = useState(false)
 
-  // Determine image path
-  const imagePath = `/screenshots/${game.id}.png`
+  // Use the actual screenshot path with jpg extension
+  const screenshotPath = `/screenshots/${game.id}.jpg`
 
-  // Fallback colors based on game ID
+  // Generate a placeholder image URL as fallback
+  const placeholderImageUrl = `/placeholder.svg?height=675&width=1200&query=${encodeURIComponent(
+    `${game.title} game screenshot with ${game.shortDescription}`,
+  )}`
+
+  // Fallback colors based on game ID for error state
   const getGameColors = (gameId: string) => {
     const colorMap: Record<string, { from: string; to: string }> = {
-      wordisles: { from: "from-purple-500", to: "to-blue-500" },
-      emojigrid: { from: "from-yellow-500", to: "to-orange-500" },
-      catmazes: { from: "from-green-500", to: "to-teal-500" },
-      breaktheice: { from: "from-blue-500", to: "to-cyan-500" },
+      wordisles: { from: "from-blue-600", to: "to-blue-800" },
+      emojigrid: { from: "from-purple-500", to: "to-pink-500" },
+      catmazes: { from: "from-yellow-500", to: "to-orange-600" },
+      breaktheice: { from: "from-amber-700", to: "to-amber-900" },
     }
 
     return colorMap[gameId] || { from: "from-purple-500", to: "to-pink-500" }
@@ -48,26 +53,35 @@ export function GameCard({ game }: GameCardProps) {
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className="relative aspect-[16/9] overflow-hidden">
-        {/* Fallback gradient background */}
-        <div className={`absolute inset-0 bg-gradient-to-br ${from} ${to} flex items-center justify-center`}>
-          <Gamepad className="w-16 h-16 text-white text-opacity-30" />
-        </div>
+        {/* Fallback gradient background (shown during loading or on error) */}
+        {(!isImageLoaded || hasImageError) && (
+          <div className={`absolute inset-0 bg-gradient-to-br ${from} ${to} flex items-center justify-center`}>
+            <Gamepad className="w-16 h-16 text-white text-opacity-30" />
+          </div>
+        )}
 
-        {/* Actual image */}
+        {/* Game screenshot */}
         <Image
-          src={imagePath || "/placeholder.svg"}
+          src={hasImageError ? placeholderImageUrl : screenshotPath}
           alt={`${game.title} screenshot`}
           className={`object-cover w-full h-full transition-all duration-500 ${
-            imageLoaded ? "opacity-100" : "opacity-0"
+            isImageLoaded && !hasImageError ? "opacity-100" : "opacity-0"
           }`}
-          width={600}
-          height={338}
-          onLoad={() => setImageLoaded(true)}
-          onError={() => setImageError(true)}
-          priority={game.id === "wordisles"}
+          style={{
+            transform: isHovered ? "scale(1.05)" : "scale(1)",
+            transition: "transform 0.5s ease-out",
+          }}
+          width={1200}
+          height={675}
+          onLoad={() => setIsImageLoaded(true)}
+          onError={(e) => {
+            setHasImageError(true)
+            console.error(`Failed to load image: ${screenshotPath}, falling back to placeholder`)
+          }}
+          priority={game.id === "wordisles"} // Load the first game image with priority
         />
 
-        {/* Overlay gradient for text readability */}
+        {/* Hover overlay for better text contrast */}
         <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
       </div>
 

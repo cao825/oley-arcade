@@ -14,7 +14,7 @@ export default function Head() {
       />
       <meta property="og:type" content="website" />
       <meta property="og:url" content="https://oleyarcade.vercel.app" />
-      <meta property="og:image" content="/screenshots/wordisles.png" />
+      <meta property="og:image" content="/screenshots/wordisles.jpg" />
       <meta name="twitter:card" content="summary_large_image" />
       <link rel="icon" href="/favicon.ico" />
     </>
