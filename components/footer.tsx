@@ -1,4 +1,4 @@
-import { Github, Heart, Twitter, Gamepad2 } from "lucide-react"
+import { Heart, Gamepad2 } from "lucide-react"
 
 export function Footer() {
   const currentYear = new Date().getFullYear()
@@ -25,26 +25,7 @@ export function Footer() {
               Built by the Oley family using <span className="text-pink-500">ChatGPT</span> and{" "}
               <span className="text-purple-500">Vercel v0</span> <Heart className="inline h-4 w-4 text-pink-500 mx-1" />
             </p>
-            <div className="flex mt-4 space-x-4 md:justify-end">
-              <a
-                href="https://github.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-gray-400 hover:text-white transition-colors"
-                aria-label="GitHub"
-              >
-                <Github size={20} />
-              </a>
-              <a
-                href="https://twitter.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-gray-400 hover:text-white transition-colors"
-                aria-label="Twitter"
-              >
-                <Twitter size={20} />
-              </a>
-            </div>
+            <div className="mt-4 md:justify-end"></div>
           </div>
         </div>
         <div className="mt-10 pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center">

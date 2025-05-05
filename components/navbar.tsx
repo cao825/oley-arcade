@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { Menu, X, Github, Gamepad2 } from "lucide-react"
+import { Menu, X, Gamepad2 } from "lucide-react"
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -40,15 +40,6 @@ export function Navbar() {
             <Link href="#about" className="text-gray-300 hover:text-white transition-colors font-medium">
               About
             </Link>
-            <a
-              href="https://github.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-gray-300 hover:text-white transition-colors"
-              aria-label="GitHub"
-            >
-              <Github size={20} />
-            </a>
           </div>
           <div className="md:hidden flex items-center">
             <button
@@ -79,15 +70,6 @@ export function Navbar() {
             >
               About
             </Link>
-            <a
-              href="https://github.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center px-3 py-2 text-gray-300 hover:text-white"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              <Github size={20} className="mr-2" /> GitHub
-            </a>
           </div>
         </div>
       )}
