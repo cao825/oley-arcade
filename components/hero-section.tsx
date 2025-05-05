@@ -15,7 +15,7 @@ export function HeroSection() {
   }
 
   return (
-    <div className="relative overflow-hidden bg-background min-h-[70vh] flex items-center">
+    <div className="relative overflow-hidden bg-background min-h-[70vh] flex items-center scanline">
       {/* Animated background grid */}
       <div className="absolute inset-0 z-0 arcade-grid opacity-30"></div>
 
@@ -49,7 +49,7 @@ export function HeroSection() {
             </span>
           </h1>
           <p className="max-w-lg mx-auto text-xl text-gray-300 sm:max-w-3xl font-medium mt-4">
-            Family-built AI-powered games. Dive in.
+            Family-built AI-powered games. Play. Learn. Laugh.
           </p>
 
           {/* Bouncing down arrow */}

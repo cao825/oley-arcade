@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { Menu, X, Github } from "lucide-react"
+import { Menu, X, Github, Gamepad2 } from "lucide-react"
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -27,6 +27,7 @@ export function Navbar() {
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <Link href="/" className="flex items-center">
+              <Gamepad2 className="h-6 w-6 mr-2 text-pink-500" />
               <span className="text-2xl font-bold font-display text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
                 OleyArcade
               </span>

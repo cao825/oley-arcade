@@ -5,7 +5,7 @@ import type React from "react"
 import { useState, useRef, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { ExternalLink } from "lucide-react"
+import { ExternalLink, Sparkles } from "lucide-react"
 
 interface Game {
   id: string
@@ -23,6 +23,7 @@ export function GameCard({ game }: GameCardProps) {
   const [isHovered, setIsHovered] = useState(false)
   const cardRef = useRef<HTMLDivElement>(null)
   const [rotation, setRotation] = useState({ x: 0, y: 0 })
+  const [isLoaded, setIsLoaded] = useState(false)
 
   // 3D tilt effect
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -70,7 +71,7 @@ export function GameCard({ game }: GameCardProps) {
   return (
     <div
       ref={cardRef}
-      className="game-card relative bg-gray-800/80 rounded-xl overflow-hidden shadow-lg h-full flex flex-col"
+      className="game-card relative bg-gray-800/80 rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 h-full flex flex-col retro-glow"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => {
         setIsHovered(false)
@@ -84,44 +85,48 @@ export function GameCard({ game }: GameCardProps) {
         transition: isHovered ? "transform 0.1s ease-out" : "transform 0.5s ease-out",
       }}
     >
-      <div className="relative h-48 overflow-hidden">
+      <div className="relative aspect-video overflow-hidden">
+        {!isLoaded && isInView && (
+          <div className="absolute inset-0 bg-gray-800 animate-pulse flex items-center justify-center">
+            <Sparkles className="h-8 w-8 text-gray-600 animate-spin" />
+          </div>
+        )}
         {isInView && (
           <Image
-            src={game.imageUrl || "/placeholder.svg"}
+            src={game.imageUrl || `/screenshots/${game.id}.jpg`}
             alt={`${game.title} screenshot`}
-            className="object-cover w-full h-full transition-transform duration-700 ease-out"
+            className={`object-cover w-full h-full transition-all duration-700 ease-out ${
+              isLoaded ? "opacity-100" : "opacity-0"
+            }`}
             style={{
               transform: isHovered ? "scale(1.05)" : "scale(1)",
             }}
-            width={600}
-            height={400}
+            width={1200}
+            height={675}
+            onLoad={() => setIsLoaded(true)}
             loading="lazy"
           />
         )}
-
-        {/* Game title overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/70 to-transparent">
-          <div className="absolute bottom-0 left-0 right-0 p-4">
-            <h3 className="text-xl font-bold font-display text-white">{game.title}</h3>
-          </div>
-        </div>
       </div>
 
-      <div className="p-5 flex-grow flex flex-col">
+      <div className="p-6 flex-grow flex flex-col">
+        <h3 className="text-2xl font-bold font-display mb-2 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
+          {game.title}
+        </h3>
         <p className="text-gray-300 mb-6 flex-grow">{game.description}</p>
         <Link
           href={game.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 transition-all duration-300 shadow-md hover:shadow-lg hover:shadow-purple-500/20 transform hover:-translate-y-1 active:translate-y-0"
+          className="play-button inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 transition-all duration-300 shadow-md hover:shadow-lg hover:shadow-purple-500/20 transform hover:-translate-y-1 active:translate-y-0"
         >
-          Play Now <ExternalLink size={16} className="ml-2" />
+          Play Now <ExternalLink size={18} className="ml-2" />
         </Link>
       </div>
 
       {/* Glow effect on hover */}
       <div
-        className="absolute -inset-px bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl opacity-0 transition-opacity duration-300 -z-10"
+        className="absolute -inset-px bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl opacity-0 transition-opacity duration-300 -z-10"
         style={{
           opacity: isHovered ? 0.2 : 0,
         }}

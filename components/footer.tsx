@@ -1,4 +1,4 @@
-import { Github, Heart, Twitter } from "lucide-react"
+import { Github, Heart, Twitter, Gamepad2 } from "lucide-react"
 
 export function Footer() {
   const currentYear = new Date().getFullYear()
@@ -8,10 +8,13 @@ export function Footer() {
       <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div>
-            <h3 className="text-2xl font-bold font-display text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 mb-4">
-              OleyArcade
-            </h3>
-            <p className="text-gray-400 max-w-md">
+            <div className="flex items-center">
+              <Gamepad2 className="h-6 w-6 mr-2 text-pink-500" />
+              <h3 className="text-2xl font-bold font-display text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
+                OleyArcade
+              </h3>
+            </div>
+            <p className="text-gray-400 max-w-md mt-4">
               A collection of family-built AI-powered web games designed to challenge your mind and spark your
               imagination.
             </p>
@@ -19,8 +22,8 @@ export function Footer() {
           <div className="md:text-right">
             <h3 className="text-xl font-bold font-display text-white mb-4">About Us</h3>
             <p className="text-gray-400">
-              Made with <Heart className="inline h-4 w-4 text-pink-500 mx-1" /> by the Oley family using ChatGPT and
-              Vercel v0.
+              Built by the Oley family using <span className="text-pink-500">ChatGPT</span> and{" "}
+              <span className="text-purple-500">Vercel v0</span> <Heart className="inline h-4 w-4 text-pink-500 mx-1" />
             </p>
             <div className="flex mt-4 space-x-4 md:justify-end">
               <a

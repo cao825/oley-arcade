@@ -11,21 +11,21 @@ export default function HomePage() {
       description:
         "A strategic word adventure where every choice shapes your journey across floating isles of language.",
       url: "https://wordisles.com",
-      imageUrl: "/images/wordisles-screenshot.jpg",
+      imageUrl: "/screenshots/wordisles.jpg",
     },
     {
       id: "emojigrid",
       title: "Emoji Grid",
       description: "A puzzle-strategy challenge using emoji-based logic and color matching to outsmart the grid.",
       url: "https://emojigrid.vercel.app",
-      imageUrl: "/images/emojigrid-screenshot.jpg",
+      imageUrl: "/screenshots/emojigrid.jpg",
     },
     {
       id: "catmazes",
       title: "CatMazes",
       description: "Guide curious cats through tricky mazes. Adorable visuals meet clever spatial puzzles.",
       url: "https://catmazes.vercel.app",
-      imageUrl: "/images/catmazes-screenshot.jpg",
+      imageUrl: "/screenshots/catmazes.jpg",
     },
     {
       id: "breaktheice",
@@ -33,7 +33,7 @@ export default function HomePage() {
       description:
         "A cool logic game where you melt your way to mastery—layered challenges and hidden achievements await.",
       url: "https://icegame.vercel.app",
-      imageUrl: "/images/breaktheice-screenshot.jpg",
+      imageUrl: "/screenshots/breaktheice.jpg",
     },
   ]
 
