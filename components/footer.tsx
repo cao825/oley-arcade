@@ -25,10 +25,9 @@ export function Footer() {
               Built by the Oley family using <span className="text-pink-500">ChatGPT</span> and{" "}
               <span className="text-purple-500">Vercel v0</span> <Heart className="inline h-4 w-4 text-pink-500 mx-1" />
             </p>
-            <div className="mt-4 md:justify-end"></div>
           </div>
         </div>
-        <div className="mt-10 pt-8 border-t border-gray-800 flex justify-center">
+        <div className="mt-10 pt-8 border-t border-gray-800 text-center">
           <p className="text-gray-400 text-sm">&copy; {currentYear} OleyArcade. All rights reserved.</p>
         </div>
       </div>

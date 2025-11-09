@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { ExternalLink, Gamepad } from "lucide-react"
@@ -11,6 +11,7 @@ interface Game {
   shortDescription: string
   description: string
   url: string
+  screenshotUrl?: string
 }
 
 interface GameCardProps {
@@ -20,24 +21,25 @@ interface GameCardProps {
 export function GameCard({ game }: GameCardProps) {
   const [isImageLoaded, setIsImageLoaded] = useState(false)
   const [hasImageError, setHasImageError] = useState(false)
-  const cardRef = useRef<HTMLDivElement>(null)
-  const [isHovered, setIsHovered] = useState(false)
 
-  // Use the actual screenshot path with jpg extension
-  const screenshotPath = `/screenshots/${game.id}.jpg`
-
-  // Generate a placeholder image URL as fallback
-  const placeholderImageUrl = `/placeholder.svg?height=675&width=1200&query=${encodeURIComponent(
-    `${game.title} game screenshot with ${game.shortDescription}`,
-  )}`
+  const imageSource =
+    game.screenshotUrl && game.screenshotUrl.trim() !== ""
+      ? game.screenshotUrl
+      : `/placeholder.svg?height=675&width=1200&query=${encodeURIComponent(
+          `${game.title} game screenshot with ${game.shortDescription}`,
+        )}`
 
   // Fallback colors based on game ID for error state
   const getGameColors = (gameId: string) => {
     const colorMap: Record<string, { from: string; to: string }> = {
-      wordisles: { from: "from-blue-600", to: "to-blue-800" },
+      wordisles: { from: "from-blue-500", to: "to-teal-500" },
       emojigrid: { from: "from-purple-500", to: "to-pink-500" },
-      catmazes: { from: "from-yellow-500", to: "to-orange-600" },
-      breaktheice: { from: "from-amber-700", to: "to-amber-900" },
+      catmazes: { from: "from-yellow-500", to: "to-orange-500" },
+      breaktheice: { from: "from-cyan-500", to: "to-blue-500" },
+      gardeningtycoon: { from: "from-green-500", to: "to-emerald-500" },
+      artstudio: { from: "from-pink-500", to: "to-rose-500" },
+      bedroomdesigner: { from: "from-indigo-500", to: "to-purple-500" },
+      lemonadestand: { from: "from-yellow-500", to: "to-amber-500" },
     }
 
     return colorMap[gameId] || { from: "from-purple-500", to: "to-pink-500" }
@@ -46,12 +48,7 @@ export function GameCard({ game }: GameCardProps) {
   const { from, to } = getGameColors(game.id)
 
   return (
-    <div
-      ref={cardRef}
-      className="group relative bg-gray-800/80 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 h-full flex flex-col hover:scale-105 hover:ring-2 hover:ring-indigo-400/50"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
+    <div className="group relative bg-gray-800/80 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 h-full flex flex-col hover:scale-105 hover:ring-2 hover:ring-indigo-400/50">
       <div className="relative aspect-[16/9] overflow-hidden">
         {/* Fallback gradient background (shown during loading or on error) */}
         {(!isImageLoaded || hasImageError) && (
@@ -60,26 +57,28 @@ export function GameCard({ game }: GameCardProps) {
           </div>
         )}
 
-        {/* Game screenshot */}
-        <Image
-          src={hasImageError ? placeholderImageUrl : screenshotPath}
-          alt={`${game.title} screenshot`}
-          className={`object-cover w-full h-full transition-all duration-500 ${
-            isImageLoaded && !hasImageError ? "opacity-100" : "opacity-0"
-          }`}
-          style={{
-            transform: isHovered ? "scale(1.05)" : "scale(1)",
-            transition: "transform 0.5s ease-out",
-          }}
-          width={1200}
-          height={675}
-          onLoad={() => setIsImageLoaded(true)}
-          onError={(e) => {
-            setHasImageError(true)
-            console.error(`Failed to load image: ${screenshotPath}, falling back to placeholder`)
-          }}
-          priority={game.id === "wordisles"} // Load the first game image with priority
-        />
+        {/* Game screenshot - only render if we have a valid source */}
+        {imageSource && (
+          <Image
+            src={imageSource || "/placeholder.svg"}
+            alt={`${game.title} screenshot`}
+            className={`object-cover w-full h-full transition-all duration-500 ${
+              isImageLoaded && !hasImageError ? "opacity-100" : "opacity-0"
+            }`}
+            width={1200}
+            height={675}
+            onLoad={() => {
+              console.log("[v0] Image loaded successfully:", game.title)
+              setIsImageLoaded(true)
+            }}
+            onError={() => {
+              console.log("[v0] Image failed to load:", game.title, imageSource)
+              setHasImageError(true)
+            }}
+            priority={game.id === "wordisles"}
+            unoptimized
+          />
+        )}
 
         {/* Hover overlay for better text contrast */}
         <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>

@@ -6,7 +6,7 @@ export const metadata = {
   title: "OleyArcade - Family-Built AI-Powered Web Games",
   description:
     "Discover OleyArcade's collection of family-built AI-powered web games designed to challenge your mind and spark your imagination.",
-    generator: 'v0.dev'
+    generator: 'v0.app'
 }
 
 export default function RootLayout({
