@@ -80,6 +80,16 @@ export default function HomePage() {
       screenshotUrl:
         "https://xurtccytrzafbfk3.public.blob.vercel-storage.com/agent-assets/5f94748736093ce667f815a3c7a4bd30ccf1c474a10e7d1a4d8aeed2517c22e6.jpeg",
     },
+    {
+      id: "scoopshop",
+      title: "Scoop Shop",
+      shortDescription: "Serve perfect ice cream orders to happy customers.",
+      description:
+        "Take customer orders and build the perfect ice cream. Match their requests to make them happy and earn points!",
+      url: "https://v0-ice-cream-shop-simulator.vercel.app",
+      screenshotUrl:
+        "https://xurtccytrzafbfk3.public.blob.vercel-storage.com/agent-assets/b49c4a95b19d74b4c9fe32b39cc4e9e2ce58a1c9dd7d5154d3c5c56a8acd0c84.jpeg",
+    },
   ]
 
   return (
