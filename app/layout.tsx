@@ -1,8 +1,9 @@
 import type React from "react"
+import type { Metadata } from "next"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "OleyArcade - Family-Built AI-Powered Web Games",
   description:
     "Discover OleyArcade's collection of family-built AI-powered web games designed to challenge your mind and spark your imagination.",
