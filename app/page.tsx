@@ -6,6 +6,16 @@ import { Navbar } from "@/components/navbar"
 export default function HomePage() {
   const games = [
     {
+      id: "neondrift",
+      title: "Neon Drift",
+      shortDescription: "Race through a synthwave dreamscape at high speed.",
+      description:
+        "An exhilarating retro-futuristic racing experience where you drift through neon-lit highways, dodge obstacles, and chase high scores in a stunning synthwave world.",
+      url: "https://neondrift-game.vercel.app/",
+      screenshotUrl:
+        "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Screenshot%202026-06-01%20at%209.33.59%E2%80%AFAM-fIXeQGGtMjo7YAr4ydBsUx7umEW3S5.png",
+    },
+    {
       id: "wordisles",
       title: "WordIsles",
       shortDescription: "Build bridges of words across floating islands.",
