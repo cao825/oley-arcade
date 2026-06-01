@@ -22,8 +22,10 @@ export function Footer() {
           <div className="md:text-right">
             <h3 className="text-xl font-bold font-display text-white mb-4">About Us</h3>
             <p className="text-gray-400">
-              Built by the Oley family using <span className="text-pink-500">ChatGPT</span> and{" "}
-              <span className="text-purple-500">Vercel v0</span> <Heart className="inline h-4 w-4 text-pink-500 mx-1" />
+              Built by the Oley family using <span className="text-pink-500">ChatGPT</span>,{" "}
+              <span className="text-purple-500">Vercel v0</span>,{" "}
+              <span className="text-cyan-500">Claude Code</span>, and{" "}
+              <span className="text-gray-300">GitHub</span> <Heart className="inline h-4 w-4 text-pink-500 mx-1" />
             </p>
           </div>
         </div>
