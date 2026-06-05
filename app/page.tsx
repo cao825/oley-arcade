@@ -6,6 +6,16 @@ import { Navbar } from "@/components/navbar"
 export default function HomePage() {
   const games = [
     {
+      id: "roguedescent",
+      title: "Rogue Descent",
+      shortDescription: "Descend through procedural dungeons as a spectral warrior.",
+      description:
+        "A stylish isometric roguelike where you guide a ghostly hero through ever-changing depths. Master abilities like pierce and knockback as you navigate treacherous mazes and battle your way deeper.",
+      url: "https://rogue-descent.vercel.app/",
+      screenshotUrl:
+        "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Screenshot%202026-06-04%20at%208.05.38%E2%80%AFPM-nU2nxHR9lqSovqxXnHBlOSYPCZ2DcX.png",
+    },
+    {
       id: "neondrift",
       title: "Neon Drift",
       shortDescription: "Race through a synthwave dreamscape at high speed.",
