@@ -36,6 +36,16 @@ export default function HomePage() {
         "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/IMG_2303.jpg-FDwra9gKm3DwQ9NjiOuT7nEMk5vi6o.jpeg",
     },
     {
+      id: "wildtrails",
+      title: "Wild Trails",
+      shortDescription: "Track and catch elusive creatures across wild biomes.",
+      description:
+        "An immersive isometric adventure where you explore meadows and beyond to bait, hide, and catch elusive wildlife. Complete quests and build your collection across day and night cycles.",
+      url: "https://wild-trails-game.vercel.app/",
+      screenshotUrl:
+        "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Screenshot%202026-06-18%20at%202.35.38%E2%80%AFPM-lDscaDhjho2xSSZXzjTrIixCLvuaCb.png",
+    },
+    {
       id: "emojigrid",
       title: "Emoji Grid",
       shortDescription: "Match patterns and outsmart the colorful grid.",
