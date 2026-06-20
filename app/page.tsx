@@ -120,6 +120,16 @@ export default function HomePage() {
       screenshotUrl:
         "https://xurtccytrzafbfk3.public.blob.vercel-storage.com/agent-assets/b49c4a95b19d74b4c9fe32b39cc4e9e2ce58a1c9dd7d5154d3c5c56a8acd0c84.jpeg",
     },
+    {
+      id: "oleycollections",
+      title: "Oley Collections",
+      shortDescription: "A collection of Gabby's sites.",
+      description:
+        "Be able to find many more academic, entertaining, or helpful apps here!",
+      url: "https://v0-oleycollections.vercel.app",
+      screenshotUrl:
+        "",
+    },
   ]
 
   return (
