@@ -1,0 +1,21 @@
+# deps
+node_modules/
+.pnpm-store/
+
+# next
+.next/
+out/
+build/
+# next-env.d.ts is already tracked in this repo, so it is intentionally not ignored here
+
+# vercel
+.vercel/
+
+# env
+.env
+.env*.local
+
+# misc
+*.tsbuildinfo
+.DS_Store
+*.log
