@@ -1,15 +1,30 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { ChevronDown } from "lucide-react"
 
+// Deterministic pseudo-random in [0, 1) from a seed. Replaces Math.random() for the
+// decorative particles so values are STABLE across renders and identical on server
+// and client — fixing react-hooks/purity (no impure call during render) and the
+// hydration mismatch that random-in-render would otherwise cause. Computed once at
+// module load, outside any render.
+const rand = (seed: number) => {
+  const x = Math.sin(seed) * 43758.5453
+  return x - Math.floor(x)
+}
+
+const PARTICLES = Array.from({ length: 30 }, (_, i) => {
+  const s = i * 6.1
+  return {
+    width: rand(s) * 10 + 5,
+    height: rand(s + 1) * 10 + 5,
+    left: rand(s + 2) * 100,
+    top: rand(s + 3) * 100,
+    delay: rand(s + 4) * 3,
+    duration: rand(s + 5) * 5 + 3,
+  }
+})
+
 export function HeroSection() {
-  const [isVisible, setIsVisible] = useState(false)
-
-  useEffect(() => {
-    setIsVisible(true)
-  }, [])
-
   const scrollToGames = () => {
     document.getElementById("games")?.scrollIntoView({ behavior: "smooth" })
   }
@@ -21,17 +36,17 @@ export function HeroSection() {
 
       {/* Floating particles */}
       <div className="absolute inset-0 z-0">
-        {[...Array(30)].map((_, i) => (
+        {PARTICLES.map((p, i) => (
           <div
             key={i}
             className="absolute rounded-full bg-purple-500/20 animate-float"
             style={{
-              width: `${Math.random() * 10 + 5}px`,
-              height: `${Math.random() * 10 + 5}px`,
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 3}s`,
-              animationDuration: `${Math.random() * 5 + 3}s`,
+              width: `${p.width}px`,
+              height: `${p.height}px`,
+              left: `${p.left}%`,
+              top: `${p.top}%`,
+              animationDelay: `${p.delay}s`,
+              animationDuration: `${p.duration}s`,
             }}
           />
         ))}
@@ -41,11 +56,9 @@ export function HeroSection() {
       <div className="absolute inset-0 z-0 pixel-bg"></div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-20">
-        <div
-          className={`text-center transition-all duration-1000 transform ${
-            isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
-          }`}
-        >
+        {/* Entrance animation via tailwindcss-animate (pure CSS on mount) — replaces
+            the previous isVisible state + mount effect, clearing react-hooks/set-state-in-effect. */}
+        <div className="text-center animate-in fade-in slide-in-from-bottom-10 duration-1000">
           <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-4 font-display glow-text">
             <span className="block text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-500 to-red-500">
               Welcome to OleyArcade
