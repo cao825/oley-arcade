@@ -21,8 +21,8 @@ const config = {
     },
     extend: {
       fontFamily: {
-        display: ["Orbitron", "sans-serif"],
-        body: ["Space Grotesk", "sans-serif"],
+        display: ["var(--font-orbitron)", "sans-serif"],
+        body: ["var(--font-space-grotesk)", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",
