@@ -10,15 +10,15 @@ on:
     # Wednesday slot so the two security scans don't contend for runners.
     - cron: "23 7 * * 1"
 
-# ADVISORY mode (private repo, no GitHub Advanced Security). The analyze step runs
-# the full CodeQL suite but does NOT upload SARIF to Code Scanning — that endpoint
-# requires GHAS / a public repo, which this repo doesn't have, and the upload would
-# hard-fail the job. Instead the SARIF is published as a build artifact. Re-enable
-# the upload (set `upload: always`, restore `security-events: write`, drop the
-# artifact step) if the repo goes public or GHAS is purchased.
 permissions:
+  # security-events: write to upload SARIF results to the Security > Code Scanning
+  # tab. (This repo is PUBLIC, so Code Scanning is available without GHAS. It was
+  # previously `read` + `upload: never` while the repo was private with no GHAS —
+  # that made CodeQL a decorative green check whose results went nowhere.)
+  # contents/actions: read are required by the CodeQL action to check out the repo
+  # and read workflow run metadata.
+  security-events: write
   contents: read
-  security-events: read
   actions: read
 
 jobs:
@@ -27,8 +27,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
+      security-events: write
       contents: read
-      security-events: read
       actions: read
 
     steps:
@@ -58,17 +58,5 @@ jobs:
         uses: github/codeql-action/analyze@8aad20d150bbac5944a9f9d289da16a4b0d87c1e  # v4.36.2
         with:
           category: "/language:javascript-typescript"
-          # ADVISORY: never upload to Code Scanning (no GHAS on this private repo —
-          # the upload would 422/hard-fail). SARIF is written to ./codeql-results
-          # and published as an artifact below for offline review.
-          upload: never
-          output: codeql-results
-
-      - name: Upload CodeQL SARIF as artifact
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
-        with:
-          name: codeql-sarif
-          path: codeql-results
-          if-no-files-found: warn
-          retention-days: 14
+          # upload defaults to 'always' — SARIF is uploaded to Code Scanning for
+          # successful and failed runs, so findings land in the Security tab.
