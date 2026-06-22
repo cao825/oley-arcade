@@ -1,9 +1,12 @@
 import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  // NOTE: the `eslint` config block (eslint.ignoreDuringBuilds) was removed here
+  // because Next 16 dropped the built-in ESLint integration (`next lint` is gone),
+  // so `eslint` is no longer a valid NextConfig key — keeping it fails the type
+  // check and the build. This does NOT change lint posture: Next 16 doesn't run
+  // ESLint during the build at all. Standalone ESLint (flat config + CI lint step)
+  // is the separate follow-up (PR-D).
   images: {
     remotePatterns: [
       {
