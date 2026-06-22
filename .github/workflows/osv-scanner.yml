@@ -9,41 +9,53 @@ on:
     # Weekly, off-peak. Wednesday 07:17 UTC — staggered from CodeQL's Monday slot.
     - cron: "17 7 * * 3"
 
+# ADVISORY mode (private repo, no GitHub Advanced Security). The upstream
+# google/osv-scanner-action reusable workflows FORCE a SARIF upload to Code
+# Scanning, which 422/hard-fails without GHAS (or a public repo). So instead of
+# the reusable workflow we run the pinned osv-scanner CLI directly: findings go to
+# the job log + step summary, the SARIF is published as an artifact, and the job
+# NEVER walls a PR (`|| true`). OSV reads pnpm-lock.yaml natively (--recursive).
+# Swap back to the osv-scanner-reusable workflows (SARIF -> Security tab) if the
+# repo goes public or GHAS is purchased.
 permissions:
-  # security-events: write to upload SARIF to the Security tab; actions/contents
-  # read are required by the reusable workflows (and for SARIF upload).
-  security-events: write
   contents: read
-  actions: read
 
 jobs:
-  # PR scan: diff-aware. Compares the PR branch against the base and fails only
-  # when the PR introduces NEW vulnerabilities — pre-existing ones don't block.
-  # `--recursive ./` walks the tree and reads pnpm-lock.yaml natively (OSV-Scanner
-  # supports pnpm lockfiles), so no npm-specific path is hardcoded — this ports
-  # to pnpm unchanged from the npm siblings.
-  scan-pr:
-    if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
-    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable-pr.yml@v2.3.8
-    permissions:
-      security-events: write
-      contents: read
-      actions: read
-    with:
-      scan-args: |-
-        --recursive
-        ./
+  osv-scan:
+    name: osv-scan (advisory)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
-  # Full scan: entire dependency tree on push to main + weekly. Uploads SARIF to
-  # Security > Code Scanning so findings sit alongside CodeQL.
-  scan-full:
-    if: github.event_name != 'pull_request'
-    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.3.8
-    permissions:
-      security-events: write
-      contents: read
-      actions: read
-    with:
-      scan-args: |-
-        --recursive
-        ./
+      - name: Install OSV-Scanner v2.3.8 (pinned)
+        # Version-pinned to v2.3.8 to match the sibling repos' OSV pin. `-f` fails
+        # the step on an HTTP error so a bad download surfaces loudly instead of
+        # leaving a broken binary.
+        run: |
+          curl -sSfL -o osv-scanner \
+            https://github.com/google/osv-scanner/releases/download/v2.3.8/osv-scanner_linux_amd64
+          chmod +x osv-scanner
+          ./osv-scanner --version
+
+      - name: Run OSV-Scanner (advisory, non-blocking)
+        # `|| true` keeps the job GREEN regardless of findings — advisory posture,
+        # never walls a PR. Human-readable results go to the step summary; the
+        # SARIF is written for the artifact below.
+        run: |
+          {
+            echo "## OSV-Scanner results"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          ./osv-scanner --recursive ./ 2>&1 | tee -a "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          ./osv-scanner --recursive --format=sarif --output=osv-results.sarif ./ || true
+
+      - name: Upload OSV SARIF as artifact
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        with:
+          name: osv-sarif
+          path: osv-results.sarif
+          if-no-files-found: warn
+          retention-days: 14

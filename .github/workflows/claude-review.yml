@@ -56,12 +56,30 @@ jobs:
       issues: write         # respond on the issue_comment (@claude) path
     timeout-minutes: 20
     steps:
+      # Preflight: the OAuth token is the model-auth secret. It is NOT yet set on
+      # this repo (interactive `claude setup-token`). Secrets can't be referenced
+      # in a job-level `if:`, so gate here: if the token is absent, every real step
+      # below is skipped and the job ends GREEN (advisory — a missing token must
+      # never wall a PR). Set CLAUDE_CODE_OAUTH_TOKEN to activate the review.
+      - name: Check for OAuth token
+        id: have_token
+        env:
+          TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          if [[ -n "$TOKEN" ]]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::CLAUDE_CODE_OAUTH_TOKEN is not set — skipping advisory Claude review. Set the secret to enable it."
+          fi
+
       # Resolve the PR head SHA at trigger time so the checkout pins an immutable
       # commit instead of a mutable branch ref — guards an Untrusted-Checkout
       # TOCTOU on the issue_comment path (a force-push after the trust gate can't
       # swap in different code).
       - name: Resolve PR head SHA
         id: pr-sha
+        if: steps.have_token.outputs.present == 'true'
         run: |
           PR_NUMBER="${{ github.event.pull_request.number || github.event.issue.number }}"
           SHA=$(gh pr view "$PR_NUMBER" --repo "${{ github.repository }}" --json headRefOid --jq .headRefOid)
@@ -74,6 +92,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
 
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        if: steps.have_token.outputs.present == 'true'
         with:
           # SHA-pinned (immutable), NOT head.ref — branch refs are mutable.
           ref: ${{ steps.pr-sha.outputs.sha }}
@@ -81,6 +100,7 @@ jobs:
 
       - id: claude
         uses: anthropics/claude-code-action@2fee15510437d71399d9139ed60433470484a8fb  # v1
+        if: steps.have_token.outputs.present == 'true'
         with:
           # Anthropic MODEL auth (OAuth via Craig's Max subscription). Separate
           # axis from GitHub auth below — both are required.
@@ -138,7 +158,7 @@ jobs:
       # job is NOT a required check (no branch protection), so a red here never
       # locks the repo — it just surfaces a broken review for a human to look at.
       - name: Fail the check if the action errored (no hollow-green review)
-        if: always()
+        if: always() && steps.have_token.outputs.present == 'true'
         env:
           EXEC_FILE: ${{ steps.claude.outputs.execution_file }}
         run: |
