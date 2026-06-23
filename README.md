@@ -1,30 +1,33 @@
 # OleyArcade
 
-*Automatically synced with your [v0.dev](https://v0.dev) deployments*
+The front-door umbrella site for the Oley family's collection of AI-powered web games.
+Production: **[https://oleyarcade.com](https://oleyarcade.com)**
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/cao825s-projects/v0-oley-arcade)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.dev-black?style=for-the-badge)](https://v0.dev/chat/projects/GJa14m8TCZQ)
+[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://oleyarcade.com)
 
 ## Overview
 
-This repository will stay in sync with your deployed chats on [v0.dev](https://v0.dev).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.dev](https://v0.dev).
+A single-page Next.js (App Router) + React 19 site whose homepage links out to the
+family's games (each hosted on its own domain). Originally scaffolded with
+[v0.dev](https://v0.dev), now maintained directly in this repository.
 
-## Deployment
+## Tech stack
 
-Your project is live at:
+- **Next.js 16** (App Router, Turbopack) + **React 19**
+- **pnpm** (pinned via `packageManager`), Tailwind CSS, TypeScript
+- Deployed on **Vercel**
 
-**[https://vercel.com/cao825s-projects/v0-oley-arcade](https://vercel.com/cao825s-projects/v0-oley-arcade)**
+## Local development
 
-## Build your app
+```bash
+corepack pnpm install --frozen-lockfile
+corepack pnpm dev        # http://localhost:3000
+```
 
-Continue building your app on:
+Other scripts: `pnpm build` (production build), `pnpm lint` (ESLint), and
+`tsc --noEmit` for type-checking.
 
-**[https://v0.dev/chat/projects/GJa14m8TCZQ](https://v0.dev/chat/projects/GJa14m8TCZQ)**
+## CI
 
-## How It Works
-
-1. Create and modify your project using [v0.dev](https://v0.dev)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+Every PR runs a `verify` gate (install → typecheck → lint → build) plus CodeQL,
+OSV-Scanner, and dependency-review. See `.github/workflows/`.
