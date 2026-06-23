@@ -1,33 +1,38 @@
 name: Claude PR Review (advisory)
 
-# ADVISORY review only. Adapted from the v0-word-archipelago sibling, with the
-# auto-merge / fix-push machinery removed: this repo has NO branch protection and
-# NO auto-merge, and per Craig the reviewer stays advisory until the pipeline is
-# proven. The job posts review comments — it never approves, merges, or pushes.
+# ADVISORY review, TRUSTED mode. Ports the trusted-mode mechanics from the
+# v0-word-archipelago sibling (OIDC App token, --allowedTools honored) but KEEPS
+# advisory behavior: review + comment only — NO approve, NO merge, NO push. The
+# advisory/merge separation is enforced three ways (see the action step): contents
+# permission stays `read` (the App token cannot push/merge), --allowedTools grants
+# only read + inline-comment (no Edit/Write/git/gh-pr-merge), and the prompt forbids
+# approve/merge/push. Trusted mode requires the Claude Code GitHub App to be
+# installed/scoped to this repo (Craig); without it the OIDC exchange fails and the
+# is_error fail-safe goes red (never hollow-green).
 
 on:
   pull_request:
     types: [opened, synchronize, ready_for_review]
-    # Don't self-trigger on edits to THIS workflow file: claude-code-action
-    # refuses to run when its workflow differs from the version on main (a
-    # security check) and self-fails with exit 1, leaving a recurring red ✗ on
-    # every workflow-edit PR. Comment-driven @claude invocations still fire via
-    # the issue_comment trigger below.
+    # Don't self-trigger on edits to THIS workflow file: claude-code-action refuses
+    # to run when its workflow differs from the version on main (a security check),
+    # so it self-fails on workflow-edit PRs. paths-ignore short-circuits the trigger
+    # so those PRs don't get a spurious red. Comment-driven @claude still fires via
+    # issue_comment below.
     paths-ignore:
       - '.github/workflows/claude-review.yml'
   issue_comment:
     types: [created]
 
-# Workflow default is read-only; the job below adds the write scopes needed to
-# POST review comments. Minimum-privilege baseline for any future job here.
+# Workflow default is read-only; the job below adds the write scopes needed to POST
+# review comments and the id-token scope the OIDC App-token exchange requires.
 permissions:
   contents: read
 
 concurrency:
   # Scope by EVENT TYPE so a bot comment (issue_comment — e.g. vercel[bot]'s
   # preview-deploy comment, which lands on every PR) doesn't share the
-  # pull_request review run's group and CANCEL it mid-flight with
-  # cancel-in-progress. Within an event type a newer run still supersedes a stale one.
+  # pull_request review run's group and CANCEL it mid-flight. Within an event type
+  # a newer run still supersedes a stale one.
   group: claude-review-${{ github.event_name }}-${{ github.event.pull_request.number || github.event.issue.number }}
   cancel-in-progress: true
 
@@ -35,9 +40,8 @@ jobs:
   review:
     # TRUST GATE (pull_request path): run only on NON-DRAFT PRs whose head branch
     # lives in THIS repo (head.repo.full_name == github.repository) — never an
-    # outside fork — and not from dependabot or the actions bot. Dependabot PRs
-    # are skipped (dependency bumps get human review). issue_comment path: an
-    # @claude comment from the repo OWNER/MEMBER on a PR.
+    # outside fork — and not from dependabot or the actions bot. issue_comment
+    # path: an @claude comment from the repo OWNER/MEMBER on a PR.
     if: |
       (github.event_name == 'pull_request' &&
        github.event.pull_request.draft == false &&
@@ -51,16 +55,20 @@ jobs:
        contains(github.event.comment.body, '@claude'))
     runs-on: ubuntu-latest
     permissions:
+      # contents stays READ — advisory: the reviewer must not push or merge (the
+      # sibling uses contents: write because it fixes-and-merges; we do not).
+      # id-token: write is REQUIRED for the OIDC exchange that mints the trusted
+      # Claude App token. pull-requests/issues: write to post the review.
       contents: read
-      pull-requests: write  # post the review + inline comments
-      issues: write         # respond on the issue_comment (@claude) path
+      pull-requests: write
+      issues: write
+      id-token: write
     timeout-minutes: 20
     steps:
-      # Preflight: the OAuth token is the model-auth secret. It is NOT yet set on
-      # this repo (interactive `claude setup-token`). Secrets can't be referenced
-      # in a job-level `if:`, so gate here: if the token is absent, every real step
-      # below is skipped and the job ends GREEN (advisory — a missing token must
-      # never wall a PR). Set CLAUDE_CODE_OAUTH_TOKEN to activate the review.
+      # Preflight: gate on the model-auth secret. Secrets can't be referenced in a
+      # job-level `if:`, so if CLAUDE_CODE_OAUTH_TOKEN is absent every real step
+      # below is skipped and the job ends GREEN (a missing/rotated secret must not
+      # wall a PR). When present, the steps run and the is_error fail-safe applies.
       - name: Check for OAuth token
         id: have_token
         env:
@@ -74,9 +82,9 @@ jobs:
           fi
 
       # Resolve the PR head SHA at trigger time so the checkout pins an immutable
-      # commit instead of a mutable branch ref — guards an Untrusted-Checkout
-      # TOCTOU on the issue_comment path (a force-push after the trust gate can't
-      # swap in different code).
+      # commit instead of a mutable branch ref — guards an Untrusted-Checkout TOCTOU
+      # on the issue_comment path (a force-push after the trust gate can't swap in
+      # different code).
       - name: Resolve PR head SHA
         id: pr-sha
         if: steps.have_token.outputs.present == 'true'
@@ -99,26 +107,24 @@ jobs:
           fetch-depth: 0
 
       - id: claude
-        uses: anthropics/claude-code-action@2fee15510437d71399d9139ed60433470484a8fb  # v1
+        # SHA matches the WORKING sibling (v0-word-archipelago / rogue-descent /
+        # neon-drift), which runs trusted with permission_denials_count=0. This is a
+        # deliberate change from the previous @2fee1551 (Claude Code 2.1.185), which
+        # has a claude_args whitespace-split bug (issue #844) that shreds the
+        # space-containing --allowedTools Bash patterns below → denials → thrash.
+        # @d5726de0 (2.1.177) is the last-known-good; a future forward-bump must
+        # re-verify denials=0 before adopting.
+        uses: anthropics/claude-code-action@d5726de019ec4498aa667642bc3a80fca83aa102  # v1
         if: steps.have_token.outputs.present == 'true'
-        # NON-GATING: an advisory review must never wall a PR. This is load-bearing
-        # on THIS repo: the Claude GitHub App is NOT installed, so we must pass
-        # github_token (omitting it makes the OIDC App-token exchange 401). But
-        # github_token forces the action into UNTRUSTED mode, which DISCARDS
-        # --allowedTools — so the reviewer's Bash/gh calls get denied and it can
-        # burn turns (observed: error_max_turns, 30 denials). continue-on-error
-        # keeps the check GREEN regardless; the result is reported (non-failing)
-        # below. To make the review fully functional, install the Claude Code
-        # GitHub App, then drop github_token (trusted mode honors --allowedTools).
-        continue-on-error: true
         with:
-          # Anthropic MODEL auth (OAuth via Craig's Max subscription). Separate
-          # axis from GitHub auth below — both are required.
+          # Anthropic MODEL auth (OAuth via Craig's Max subscription).
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          # GitHub auth: passed EXPLICITLY because the Claude GitHub App is not
-          # installed here (OIDC exchange would 401). Trade-off: this forces
-          # untrusted mode — see the continue-on-error note above.
-          github_token: ${{ github.token }}
+          # GitHub auth: intentionally NO github_token. Omitting it makes the action
+          # mint a Claude Code GitHub App token via the OIDC exchange (needs the
+          # job's id-token: write AND the App installed on this repo). The App token
+          # runs the action in TRUSTED mode, where --allowedTools is HONORED.
+          # Passing GITHUB_TOKEN instead forced UNTRUSTED mode, which DISCARDS
+          # --allowedTools and denied every Bash tool → error_max_turns thrash.
           prompt: |
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
@@ -154,28 +160,30 @@ jobs:
             - Pre-existing issues unrelated to this PR's diff.
           claude_args: |
             --model claude-opus-4-6
-            --max-turns 12
-            --allowedTools Read,mcp__github_inline_comment__create_inline_comment
+            --max-turns 20
+            --allowedTools Read,Bash(gh pr view:*),Bash(gh pr diff:*),mcp__github_inline_comment__create_inline_comment
 
-      # REPORT (non-gating): surface the action's result in the run log + step
-      # summary WITHOUT failing the check. The is_error/subtype is informational —
-      # an advisory review on this repo (untrusted mode, App not installed) may
-      # legitimately not complete a full review, and that must not wall a PR. Once
-      # the Claude GitHub App is installed and github_token dropped (trusted mode),
-      # flip the `exit 0` here to `exit 1` on is_error to restore a real fail-safe.
-      - name: Report review outcome (advisory, non-gating)
+      # is_error FAIL-SAFE (gating, restored now that we're trusted): the action can
+      # exit 0 yet have errored internally (error_max_turns / error_during_execution /
+      # a failed OIDC exchange when the App isn't scoped). Parse the execution log's
+      # final result and FAIL the check unless is_error is explicitly false — so a
+      # broken/hollow run is loud, never silently green. This job is NOT a required
+      # check (no branch protection), so a red here surfaces a problem without
+      # locking the repo. If the App is not yet scoped, this is what goes red.
+      - name: Fail the check if the action errored (no hollow-green review)
         if: always() && steps.have_token.outputs.present == 'true'
         env:
           EXEC_FILE: ${{ steps.claude.outputs.execution_file }}
         run: |
           if [[ -z "$EXEC_FILE" || ! -f "$EXEC_FILE" ]]; then
-            echo "claude-code-action produced no execution_file." | tee -a "$GITHUB_STEP_SUMMARY"
-            exit 0
+            echo "::error::claude-code-action produced no execution_file — treating as a failed run."
+            exit 1
           fi
           IS_ERROR=$(jq -r '[.[] | select(.type=="result")] | last | .is_error' "$EXEC_FILE" 2>/dev/null)
           SUBTYPE=$(jq -r '[.[] | select(.type=="result")] | last | .subtype // "unknown"' "$EXEC_FILE" 2>/dev/null)
-          echo "## Claude advisory review: is_error=$IS_ERROR subtype=$SUBTYPE" >> "$GITHUB_STEP_SUMMARY"
+          DENIALS=$(jq -r '[.[] | select(.type=="result")] | last | .permission_denials_count // 0' "$EXEC_FILE" 2>/dev/null)
+          echo "claude-code-action result: is_error=$IS_ERROR subtype=$SUBTYPE permission_denials_count=$DENIALS"
           if [[ "$IS_ERROR" != "false" ]]; then
-            echo "::warning::Advisory Claude review did not complete cleanly (is_error=$IS_ERROR, subtype=$SUBTYPE). Non-gating — install the Claude GitHub App for a fully-functional review."
+            echo "::error::claude-code-action did not complete cleanly (is_error=$IS_ERROR, subtype=$SUBTYPE, denials=$DENIALS). If denials>0 / error_max_turns, the Claude GitHub App is likely not scoped to this repo (untrusted mode)."
+            exit 1
           fi
-          exit 0
