@@ -114,7 +114,7 @@ jobs:
         # space-containing --allowedTools Bash patterns below → denials → thrash.
         # @d5726de0 (2.1.177) is the last-known-good; a future forward-bump must
         # re-verify denials=0 before adopting.
-        uses: anthropics/claude-code-action@e90deca47693f9457b72f2b53c17d7c445a87342  # v1
+        uses: anthropics/claude-code-action@af0559ee4f514d1ef21826982bed13f7edc3c35e  # v1
         if: steps.have_token.outputs.present == 'true'
         with:
           # Anthropic MODEL auth (OAuth via Craig's Max subscription).
