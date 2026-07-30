@@ -24,5 +24,16 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
+    groups:
+      # codeql-action/init and codeql-action/analyze are separate Dependabot
+      # dependencies but share on-disk state, so they must run the same version:
+      # a mismatched pair fails with "Loaded a configuration file for version
+      # 'X', but running version 'Y'". Left ungrouped, Dependabot can split the
+      # bump across two PRs that each fail on their own and can never go green
+      # independently (that happened with #63/#64). This group keeps them in one
+      # PR. The glob covers the bare action and every sub-action path.
+      codeql-action:
+        patterns:
+          - "github/codeql-action*"
     commit-message:
       prefix: "ci"
