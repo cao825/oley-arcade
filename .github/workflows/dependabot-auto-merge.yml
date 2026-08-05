@@ -54,9 +54,20 @@ jobs:
     permissions:
       # Dependabot-triggered runs get a READ-ONLY token by default; this block is
       # what elevates it. contents: write to queue the merge, pull-requests: write
-      # to set auto-merge on the PR. No code from the PR is ever checked out or
-      # executed here — this job only talks to the API — so there is no untrusted
-      # -code-with-a-write-token exposure.
+      # to set auto-merge on the PR.
+      #
+      # This DOES work on the plain `pull_request` trigger — do NOT "fix" it by
+      # switching to pull_request_target. That advice is stale: read-only was
+      # absolute when Dependabot runs were introduced (2021-02-18), but since
+      # 2021-10-11 push/pull_request runs triggered by Dependabot RESPECT the
+      # permissions key, and GitHub's own auto-merge example is `on: pull_request`
+      # with exactly this block. pull_request_target would run untrusted-PR-context
+      # workflows against the base branch with a write token for no benefit — a
+      # security downgrade, not an upgrade.
+      #   https://github.blog/changelog/2021-10-06-github-actions-workflows-triggered-by-dependabot-prs-will-respect-permissions-key-in-workflows/
+      #
+      # No PR code is ever checked out or executed here — this job only talks to
+      # the API — so the elevated token never meets untrusted code either way.
       contents: write
       pull-requests: write
     steps:
@@ -96,7 +107,14 @@ jobs:
           # green, no pending reviews), so GitHub rejects --auto because there is
           # nothing left to queue behind. "Clean" means the required checks already
           # PASSED, so merging directly here is the same outcome, not a bypass.
-          if grep -qiE 'clean status|not mergeable|already.*merge' <<<"$OUT"; then
+          #
+          # Match ONLY the exact "clean status" wording. This branch performs a
+          # DIRECT merge, so it must be entered solely on a signal that unambiguously
+          # means "required checks already passed". Broader patterns like
+          # 'not mergeable' also match genuine conflicts and base-branch
+          # restrictions, which would log a false "already clean" and send a
+          # doomed merge instead of the real diagnostic below.
+          if grep -qi 'clean status' <<<"$OUT"; then
             echo "::notice::PR is already in clean status — merging directly."
             gh pr merge --squash "$PR_URL"
             exit $?
