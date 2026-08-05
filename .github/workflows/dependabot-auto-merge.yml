@@ -1,0 +1,116 @@
+name: Dependabot auto-merge
+
+# WHY THIS EXISTS
+# Dependabot PRs went fully green and then just sat. #71 (codeql-action group) was
+# green for 6 days, #73 (npm minor+patch) for 3 — both CLEAN/MERGEABLE the entire
+# time, both waiting on a human to press a button. Nothing was broken; nothing was
+# finishing either. ci.yml's header flagged this as unfinished work ("Branch
+# protection / auto-merge are configured in a later PR, not here") — this is that
+# later PR.
+#
+# THREE PREREQUISITES, and only the third lives in this file. If auto-merge stops
+# working, check them in this order:
+#   1. Settings > General > "Allow auto-merge" must be ON (repo `allow_auto_merge`).
+#      While it was off the API rejected --auto outright. Enabled 2026-08-05.
+#   2. The `protect-main` ruleset must REQUIRE at least one status check. Auto-merge
+#      is a QUEUE — it parks a PR until required checks pass. With nothing required
+#      there is nothing to wait on, so GitHub refuses to enable it at all rather than
+#      merging instantly. `verify` (ci.yml) is that check: the deterministic gate
+#      (install --frozen-lockfile -> tsc --noEmit -> lint -> build), and ci.yml gave
+#      it a stable unique name for precisely this use. Added 2026-08-05.
+#      Deliberately NOT required: `osv-scan (advisory)` and `Dependency review` are
+#      `|| true` / continue-on-error so they can never go red; `review` is SKIPPED on
+#      Dependabot PRs; CodeQL's `Analyze` job fails only when the SCANNER breaks, not
+#      when it finds something, so requiring it would wall merges on scanner health.
+#   3. This workflow, which enables auto-merge on each eligible Dependabot PR.
+#
+# SCOPE: minor and patch only. Majors stay open for a human — actions/setup-node
+# 6.4.0 -> 7.0.0 (#57) is the kind of bump that deserves eyes even on green CI.
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+# Workflow default is read-only; the job elevates only what it needs.
+permissions:
+  contents: read
+
+concurrency:
+  # One enable-attempt per PR. A Dependabot rebase (synchronize) supersedes the
+  # in-flight attempt for the same PR rather than racing it.
+  group: dependabot-auto-merge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  auto-merge:
+    name: dependabot auto-merge
+    # Gate on the PR AUTHOR, not github.actor: on a `synchronize` the actor can be
+    # whoever pushed, while user.login stays dependabot[bot]. Head branches are
+    # in-repo (dependabot/...), never a fork.
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      # Dependabot-triggered runs get a READ-ONLY token by default; this block is
+      # what elevates it. contents: write to queue the merge, pull-requests: write
+      # to set auto-merge on the PR. No code from the PR is ever checked out or
+      # executed here — this job only talks to the API — so there is no untrusted
+      # -code-with-a-write-token exposure.
+      contents: write
+      pull-requests: write
+    steps:
+      # Reads the metadata Dependabot embeds in the PR, and VERIFIES the commit is
+      # genuinely Dependabot's (signature check) — so the semver decision below
+      # can't be spoofed by a lookalike branch or an edited PR body.
+      - name: Fetch Dependabot metadata
+        id: meta
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # `update-type` is the HIGHEST semver change across the PR. That matters for
+      # the grouped PRs this repo uses (minor-and-patch, codeql-action): one major
+      # anywhere in the group holds the whole group back, which is what we want.
+      - name: Enable auto-merge (minor + patch only)
+        if: steps.meta.outputs.update-type != 'version-update:semver-major'
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          UPDATE_TYPE: ${{ steps.meta.outputs.update-type }}
+          DEPS: ${{ steps.meta.outputs.dependency-names }}
+        run: |
+          set -uo pipefail
+          echo "::notice::Queuing auto-merge ($UPDATE_TYPE): $DEPS"
+
+          # Squash to match this repo's history — every merged PR is one commit
+          # titled "<subject> (#NN)".
+          if OUT=$(gh pr merge --squash --auto "$PR_URL" 2>&1); then
+            echo "$OUT"
+            echo "Auto-merge enabled; GitHub will merge once \`verify\` passes."
+            exit 0
+          fi
+          echo "$OUT"
+
+          # One legitimate failure mode: the PR is ALREADY mergeable (required checks
+          # green, no pending reviews), so GitHub rejects --auto because there is
+          # nothing left to queue behind. "Clean" means the required checks already
+          # PASSED, so merging directly here is the same outcome, not a bypass.
+          if grep -qiE 'clean status|not mergeable|already.*merge' <<<"$OUT"; then
+            echo "::notice::PR is already in clean status — merging directly."
+            gh pr merge --squash "$PR_URL"
+            exit $?
+          fi
+
+          # Anything else is a real misconfiguration. Fail LOUD with the checklist
+          # rather than leaving another green PR silently parked forever — that
+          # silence is the exact failure this workflow exists to end.
+          echo "::error::Could not enable auto-merge. Check, in order: (1) Settings > General > Allow auto-merge is ON; (2) the protect-main ruleset still requires the 'verify' status check — auto-merge needs at least one required check to queue on; (3) this job has contents:write + pull-requests:write. Raw error above."
+          exit 1
+
+      - name: Hold major bump for review
+        if: steps.meta.outputs.update-type == 'version-update:semver-major'
+        env:
+          DEPS: ${{ steps.meta.outputs.dependency-names }}
+        run: |
+          echo "::notice::Major bump held for human review (not auto-merged): $DEPS"
