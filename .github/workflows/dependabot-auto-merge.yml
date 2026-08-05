@@ -83,8 +83,17 @@ jobs:
       # `update-type` is the HIGHEST semver change across the PR. That matters for
       # the grouped PRs this repo uses (minor-and-patch, codeql-action): one major
       # anywhere in the group holds the whole group back, which is what we want.
+      #
+      # ALLOWLIST, deliberately — not `!= semver-major`. This step performs a write
+      # action, so it must fire only on values we positively recognize. A denylist
+      # also passes an EMPTY or unfamiliar update-type (an ecosystem fetch-metadata
+      # can't classify, a future change to its output format), which would
+      # auto-merge an unreviewed PR by default. Failure should land in the hold
+      # branch below, never in the merge branch.
       - name: Enable auto-merge (minor + patch only)
-        if: steps.meta.outputs.update-type != 'version-update:semver-major'
+        if: >-
+          steps.meta.outputs.update-type == 'version-update:semver-minor'
+          || steps.meta.outputs.update-type == 'version-update:semver-patch'
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -126,9 +135,23 @@ jobs:
           echo "::error::Could not enable auto-merge. Check, in order: (1) Settings > General > Allow auto-merge is ON; (2) the protect-main ruleset still requires the 'verify' status check — auto-merge needs at least one required check to queue on; (3) this job has contents:write + pull-requests:write. Raw error above."
           exit 1
 
-      - name: Hold major bump for review
-        if: steps.meta.outputs.update-type == 'version-update:semver-major'
+      # Exact inverse of the allowlist above, so every Dependabot PR lands in
+      # EXACTLY ONE of the two steps. A PR that matched neither would end the run
+      # green and silent — which is precisely the "green PR parked forever with no
+      # explanation" failure this workflow exists to end.
+      - name: Hold for human review
+        if: >-
+          steps.meta.outputs.update-type != 'version-update:semver-minor'
+          && steps.meta.outputs.update-type != 'version-update:semver-patch'
         env:
           DEPS: ${{ steps.meta.outputs.dependency-names }}
+          UPDATE_TYPE: ${{ steps.meta.outputs.update-type }}
         run: |
-          echo "::notice::Major bump held for human review (not auto-merged): $DEPS"
+          if [[ "$UPDATE_TYPE" == "version-update:semver-major" ]]; then
+            echo "::notice::Major bump held for human review (not auto-merged): $DEPS"
+          else
+            # Not a policy hold — we couldn't classify the PR at all. Warn rather
+            # than notice: this means the allowlist has drifted from reality (new
+            # ecosystem, or fetch-metadata changed its output) and needs a look.
+            echo "::warning::Unrecognized update-type '${UPDATE_TYPE:-<empty>}' — holding for human review: $DEPS. Auto-merge allowlists semver-minor and semver-patch only; if fetch-metadata changed its output format, update the conditions in this workflow."
+          fi
