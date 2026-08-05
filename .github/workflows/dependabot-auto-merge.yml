@@ -1,0 +1,161 @@
+name: Dependabot auto-merge
+
+# WHY THIS EXISTS
+# Dependabot PRs went fully green and then just sat. #71 (codeql-action group) was
+# green for 6 days, #73 (npm minor+patch) for 3 — both CLEAN/MERGEABLE the entire
+# time, both waiting on a human to press a button. Nothing was broken; nothing was
+# finishing either. ci.yml's header flagged this as unfinished work ("Branch
+# protection / auto-merge are configured in a later PR, not here") — this is that
+# later PR.
+#
+# THREE PREREQUISITES, and only the third lives in this file. If auto-merge stops
+# working, check them in this order:
+#   1. Settings > General > "Allow auto-merge" must be ON (repo `allow_auto_merge`).
+#      While it was off the API rejected --auto outright. Enabled 2026-08-05.
+#   2. The `protect-main` ruleset must REQUIRE at least one status check. Auto-merge
+#      is a QUEUE — it parks a PR until required checks pass. With nothing required
+#      there is nothing to wait on, so GitHub refuses to enable it at all rather than
+#      merging instantly. `verify` (ci.yml) is that check: the deterministic gate
+#      (install --frozen-lockfile -> tsc --noEmit -> lint -> build), and ci.yml gave
+#      it a stable unique name for precisely this use. Added 2026-08-05.
+#      Deliberately NOT required: `osv-scan (advisory)` and `Dependency review` are
+#      `|| true` / continue-on-error so they can never go red; `review` is SKIPPED on
+#      Dependabot PRs; CodeQL's `Analyze` job fails only when the SCANNER breaks, not
+#      when it finds something, so requiring it would wall merges on scanner health.
+#   3. This workflow, which enables auto-merge on each eligible Dependabot PR.
+#
+# SCOPE: minor and patch only. Majors stay open for a human — actions/setup-node
+# 6.4.0 -> 7.0.0 (#57) is the kind of bump that deserves eyes even on green CI.
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+# Workflow default is read-only; the job elevates only what it needs.
+permissions:
+  contents: read
+
+concurrency:
+  # One enable-attempt per PR. A Dependabot rebase (synchronize) supersedes the
+  # in-flight attempt for the same PR rather than racing it.
+  group: dependabot-auto-merge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  auto-merge:
+    name: dependabot auto-merge
+    # Gate on the PR AUTHOR, not github.actor: on a `synchronize` the actor can be
+    # whoever pushed, while user.login stays dependabot[bot]. Head branches are
+    # in-repo (dependabot/...), never a fork.
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      # Dependabot-triggered runs get a READ-ONLY token by default; this block is
+      # what elevates it. contents: write to queue the merge, pull-requests: write
+      # to set auto-merge on the PR.
+      #
+      # This DOES work on the plain `pull_request` trigger — do NOT "fix" it by
+      # switching to pull_request_target. That advice is stale: read-only was
+      # absolute when Dependabot runs were introduced (2021-02-18), but since
+      # 2021-10-11 push/pull_request runs triggered by Dependabot RESPECT the
+      # permissions key, and GitHub's own auto-merge example is `on: pull_request`
+      # with exactly this block. pull_request_target would run untrusted-PR-context
+      # workflows against the base branch with a write token for no benefit — a
+      # security downgrade, not an upgrade.
+      #   https://github.blog/changelog/2021-10-06-github-actions-workflows-triggered-by-dependabot-prs-will-respect-permissions-key-in-workflows/
+      #
+      # No PR code is ever checked out or executed here — this job only talks to
+      # the API — so the elevated token never meets untrusted code either way.
+      contents: write
+      pull-requests: write
+    steps:
+      # Reads the metadata Dependabot embeds in the PR, and VERIFIES the commit is
+      # genuinely Dependabot's (signature check) — so the semver decision below
+      # can't be spoofed by a lookalike branch or an edited PR body.
+      - name: Fetch Dependabot metadata
+        id: meta
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # `update-type` is the HIGHEST semver change across the PR. That matters for
+      # the grouped PRs this repo uses (minor-and-patch, codeql-action): one major
+      # anywhere in the group holds the whole group back, which is what we want.
+      #
+      # ALLOWLIST, deliberately — not `!= semver-major`. This step performs a write
+      # action, so it must fire only on values we positively recognize. A denylist
+      # also passes an EMPTY or unfamiliar update-type (an ecosystem fetch-metadata
+      # can't classify, a future change to its output format), which would
+      # auto-merge an unreviewed PR by default. Failure should land in the hold
+      # branch below, never in the merge branch.
+      - name: Enable auto-merge (minor + patch only)
+        if: >-
+          steps.meta.outputs.update-type == 'version-update:semver-minor'
+          || steps.meta.outputs.update-type == 'version-update:semver-patch'
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          UPDATE_TYPE: ${{ steps.meta.outputs.update-type }}
+          DEPS: ${{ steps.meta.outputs.dependency-names }}
+        run: |
+          set -uo pipefail
+          echo "::notice::Queuing auto-merge ($UPDATE_TYPE): $DEPS"
+
+          # Squash to match this repo's history — every merged PR is one commit
+          # titled "<subject> (#NN)".
+          if OUT=$(gh pr merge --squash --auto "$PR_URL" 2>&1); then
+            echo "$OUT"
+            echo "Auto-merge enabled; GitHub will merge once \`verify\` passes."
+            exit 0
+          fi
+          echo "$OUT"
+
+          # --auto was rejected. The one legitimate cause is that there is nothing
+          # left to queue behind: the required checks have ALREADY passed, so GitHub
+          # refuses to open a queue rather than merging instantly.
+          #
+          # Decide that from the API, NOT from gh's error text. mergeStateStatus is
+          # part of the GraphQL schema; the CLI's wording is not, and a reword would
+          # make a text match silently stop firing. It is also STRICTER than matching
+          # the message: it confirms the state directly instead of inferring it.
+          #
+          # CLEAN only — deliberately not UNSTABLE. UNSTABLE means mergeable with a
+          # FAILING non-required check, which is exactly where a red advisory
+          # `review` job lands; we don't want to merge past a red reviewer just
+          # because it isn't a required check.
+          STATE=$(gh pr view "$PR_URL" --json mergeStateStatus --jq .mergeStateStatus 2>/dev/null || echo UNKNOWN)
+          echo "mergeStateStatus=$STATE"
+          if [[ "$STATE" == "CLEAN" ]]; then
+            echo "::notice::Required checks already passed (mergeStateStatus=CLEAN) — nothing to queue behind, merging directly."
+            gh pr merge --squash "$PR_URL"
+            exit $?
+          fi
+
+          # Anything else is a real misconfiguration. Fail LOUD with the checklist
+          # rather than leaving another green PR silently parked forever — that
+          # silence is the exact failure this workflow exists to end.
+          echo "::error::Could not enable auto-merge (mergeStateStatus=$STATE). Check, in order: (1) Settings > General > Allow auto-merge is ON; (2) the protect-main ruleset still requires the 'verify' status check — auto-merge needs at least one required check to queue on; (3) this job has contents:write + pull-requests:write. Raw error above."
+          exit 1
+
+      # Exact inverse of the allowlist above, so every Dependabot PR lands in
+      # EXACTLY ONE of the two steps. A PR that matched neither would end the run
+      # green and silent — which is precisely the "green PR parked forever with no
+      # explanation" failure this workflow exists to end.
+      - name: Hold for human review
+        if: >-
+          steps.meta.outputs.update-type != 'version-update:semver-minor'
+          && steps.meta.outputs.update-type != 'version-update:semver-patch'
+        env:
+          DEPS: ${{ steps.meta.outputs.dependency-names }}
+          UPDATE_TYPE: ${{ steps.meta.outputs.update-type }}
+        run: |
+          if [[ "$UPDATE_TYPE" == "version-update:semver-major" ]]; then
+            echo "::notice::Major bump held for human review (not auto-merged): $DEPS"
+          else
+            # Not a policy hold — we couldn't classify the PR at all. Warn rather
+            # than notice: this means the allowlist has drifted from reality (new
+            # ecosystem, or fetch-metadata changed its output) and needs a look.
+            echo "::warning::Unrecognized update-type '${UPDATE_TYPE:-<empty>}' — holding for human review: $DEPS. Auto-merge allowlists semver-minor and semver-patch only; if fetch-metadata changed its output format, update the conditions in this workflow."
+          fi
