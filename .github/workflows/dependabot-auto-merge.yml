@@ -112,19 +112,23 @@ jobs:
           fi
           echo "$OUT"
 
-          # One legitimate failure mode: the PR is ALREADY mergeable (required checks
-          # green, no pending reviews), so GitHub rejects --auto because there is
-          # nothing left to queue behind. "Clean" means the required checks already
-          # PASSED, so merging directly here is the same outcome, not a bypass.
+          # --auto was rejected. The one legitimate cause is that there is nothing
+          # left to queue behind: the required checks have ALREADY passed, so GitHub
+          # refuses to open a queue rather than merging instantly.
           #
-          # Match ONLY the exact "clean status" wording. This branch performs a
-          # DIRECT merge, so it must be entered solely on a signal that unambiguously
-          # means "required checks already passed". Broader patterns like
-          # 'not mergeable' also match genuine conflicts and base-branch
-          # restrictions, which would log a false "already clean" and send a
-          # doomed merge instead of the real diagnostic below.
-          if grep -qi 'clean status' <<<"$OUT"; then
-            echo "::notice::PR is already in clean status — merging directly."
+          # Decide that from the API, NOT from gh's error text. mergeStateStatus is
+          # part of the GraphQL schema; the CLI's wording is not, and a reword would
+          # make a text match silently stop firing. It is also STRICTER than matching
+          # the message: it confirms the state directly instead of inferring it.
+          #
+          # CLEAN only — deliberately not UNSTABLE. UNSTABLE means mergeable with a
+          # FAILING non-required check, which is exactly where a red advisory
+          # `review` job lands; we don't want to merge past a red reviewer just
+          # because it isn't a required check.
+          STATE=$(gh pr view "$PR_URL" --json mergeStateStatus --jq .mergeStateStatus 2>/dev/null || echo UNKNOWN)
+          echo "mergeStateStatus=$STATE"
+          if [[ "$STATE" == "CLEAN" ]]; then
+            echo "::notice::Required checks already passed (mergeStateStatus=CLEAN) — nothing to queue behind, merging directly."
             gh pr merge --squash "$PR_URL"
             exit $?
           fi
@@ -132,7 +136,7 @@ jobs:
           # Anything else is a real misconfiguration. Fail LOUD with the checklist
           # rather than leaving another green PR silently parked forever — that
           # silence is the exact failure this workflow exists to end.
-          echo "::error::Could not enable auto-merge. Check, in order: (1) Settings > General > Allow auto-merge is ON; (2) the protect-main ruleset still requires the 'verify' status check — auto-merge needs at least one required check to queue on; (3) this job has contents:write + pull-requests:write. Raw error above."
+          echo "::error::Could not enable auto-merge (mergeStateStatus=$STATE). Check, in order: (1) Settings > General > Allow auto-merge is ON; (2) the protect-main ruleset still requires the 'verify' status check — auto-merge needs at least one required check to queue on; (3) this job has contents:write + pull-requests:write. Raw error above."
           exit 1
 
       # Exact inverse of the allowlist above, so every Dependabot PR lands in
