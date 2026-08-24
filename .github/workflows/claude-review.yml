@@ -114,7 +114,7 @@ jobs:
         # QUOTING the --allowedTools value below — see the comment there. Earlier
         # pin churn chased this as a version bug because the fail-safe misreported
         # denials as 0 (also fixed below), which pointed at "App not scoped".
-        uses: anthropics/claude-code-action@9d7150bc8a3dae8149739a88019d192b579ad90c  # v1
+        uses: anthropics/claude-code-action@dcb57747bfceeaa1fa72638cae52295d1d853d4a  # v1
         if: steps.have_token.outputs.present == 'true'
         with:
           # Anthropic MODEL auth (OAuth via Craig's Max subscription).
